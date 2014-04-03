@@ -25,6 +25,8 @@ class Terms(models.Model):
     title = models.CharField(max_length=255L)
     machine = models.ForeignKey(machine_models.MachineCategory, editable=False)
     terms = models.TextField()
+    active = models.BooleanField(default=True)
+
     class Meta:
         db_table = 'terms'
 
