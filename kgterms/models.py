@@ -16,21 +16,22 @@
 # along with karaage-terms If not, see <http://www.gnu.org/licenses/>.
 
 from django.db import models
-from karaage.people import models as peop_models
-from karaage.machines import models as mach_models
+from karaage.applications import models as application_models
+from karaage.people import models as people_models
+from karaage.machines import models as machine_models
 
 
 class Terms(models.Model):
     title = models.CharField(max_length=255L)
-    machine = models.ForeignKey(mach_models.MachineCategory, editable=False)
+    machine = models.ForeignKey(machine_models.MachineCategory, editable=False)
     terms = models.TextField()
     class Meta:
         db_table = 'terms'
 
 
 class UserAgreed(models.Model):
-    person= models.ForeignKey(peop_models.Person, related_name='users_agreed', editable=False)
-    terms = models.ForeignKey(Terms, editable=False)
+    person = models.ForeignKey(people_models.Person, related_name='terms_agreed', editable=False)
+    terms = models.ForeignKey(Terms, related_name='users_agreed', editable=False)
     when = models.DateTimeField(auto_now=True)
     class Meta:
         db_table = 'user_agreed_terms'
