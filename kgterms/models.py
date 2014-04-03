@@ -35,5 +35,7 @@ class UserAgreed(models.Model):
     person = models.ForeignKey(people_models.Person, related_name='terms_agreed', editable=False)
     terms = models.ForeignKey(Terms, related_name='users_agreed', editable=False)
     when = models.DateTimeField(auto_now=True)
+
     class Meta:
         db_table = 'user_agreed_terms'
+        unique_together = ('person', 'terms')
