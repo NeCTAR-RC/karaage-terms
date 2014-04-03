@@ -14,20 +14,27 @@ class Migration(SchemaMigration):
             ('title', self.gf('django.db.models.fields.CharField')(max_length=255L)),
             ('machine', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['machines.MachineCategory'])),
             ('terms', self.gf('django.db.models.fields.TextField')()),
+            ('active', self.gf('django.db.models.fields.BooleanField')(default=True)),
         ))
         db.send_create_signal(u'kgterms', ['Terms'])
 
         # Adding model 'UserAgreed'
         db.create_table('user_agreed_terms', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('person', self.gf('django.db.models.fields.related.ForeignKey')(related_name='users_agreed', to=orm['people.Person'])),
-            ('terms', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['kgterms.Terms'])),
+            ('person', self.gf('django.db.models.fields.related.ForeignKey')(related_name='terms_agreed', to=orm['people.Person'])),
+            ('terms', self.gf('django.db.models.fields.related.ForeignKey')(related_name='users_agreed', to=orm['kgterms.Terms'])),
             ('when', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
         db.send_create_signal(u'kgterms', ['UserAgreed'])
 
+        # Adding unique constraint on 'UserAgreed', fields ['person', 'terms']
+        db.create_unique('user_agreed_terms', ['person_id', 'terms_id'])
+
 
     def backwards(self, orm):
+        # Removing unique constraint on 'UserAgreed', fields ['person', 'terms']
+        db.delete_unique('user_agreed_terms', ['person_id', 'terms_id'])
+
         # Deleting model 'Terms'
         db.delete_table('terms')
 
@@ -38,11 +45,11 @@ class Migration(SchemaMigration):
     models = {
         u'institutes.institute': {
             'Meta': {'ordering': "['name']", 'object_name': 'Institute', 'db_table': "'institute'"},
-            'delegates': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'delegate'", 'to': u"orm['people.Person']", 'through': u"orm['institutes.InstituteDelegate']", 'blank': 'True', 'symmetrical': 'False', 'null': 'True'}),
+            'delegates': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'delegate_for'", 'to': u"orm['people.Person']", 'through': u"orm['institutes.InstituteDelegate']", 'blank': 'True', 'symmetrical': 'False', 'null': 'True'}),
             'group': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['people.Group']"}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'}),
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
             'saml_entityid': ('django.db.models.fields.CharField', [], {'max_length': '200', 'unique': 'True', 'null': 'True', 'blank': 'True'})
         },
         u'institutes.institutedelegate': {
@@ -50,20 +57,21 @@ class Migration(SchemaMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'institute': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['institutes.Institute']"}),
             'person': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['people.Person']"}),
-            'send_email': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
+            'send_email': ('django.db.models.fields.BooleanField', [], {})
         },
         u'kgterms.terms': {
             'Meta': {'object_name': 'Terms', 'db_table': "'terms'"},
+            'active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'machine': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['machines.MachineCategory']"}),
             'terms': ('django.db.models.fields.TextField', [], {}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '255L'})
         },
         u'kgterms.useragreed': {
-            'Meta': {'object_name': 'UserAgreed', 'db_table': "'user_agreed_terms'"},
+            'Meta': {'unique_together': "(('person', 'terms'),)", 'object_name': 'UserAgreed', 'db_table': "'user_agreed_terms'"},
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'person': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'users_agreed'", 'to': u"orm['people.Person']"}),
-            'terms': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['kgterms.Terms']"}),
+            'person': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'terms_agreed'", 'to': u"orm['people.Person']"}),
+            'terms': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'users_agreed'", 'to': u"orm['kgterms.Terms']"}),
             'when': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'machines.machinecategory': {
@@ -75,9 +83,11 @@ class Migration(SchemaMigration):
         u'people.group': {
             'Meta': {'ordering': "['name']", 'object_name': 'Group'},
             'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
+            'extra_data': ('jsonfield.fields.JSONField', [], {'default': '{}'}),
+            'foreign_id': ('django.db.models.fields.CharField', [], {'max_length': '255', 'unique': 'True', 'null': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'members': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'groups'", 'symmetrical': 'False', 'to': u"orm['people.Person']"}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'})
         },
         u'people.person': {
             'Meta': {'ordering': "['full_name', 'short_name']", 'object_name': 'Person', 'db_table': "'person'"},
@@ -113,7 +123,7 @@ class Migration(SchemaMigration):
             'supervisor': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             'telephone': ('django.db.models.fields.CharField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
             'title': ('django.db.models.fields.CharField', [], {'max_length': '10', 'null': 'True', 'blank': 'True'}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'}),
+            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),
             'website': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'})
         }
     }
